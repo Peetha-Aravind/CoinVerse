@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -112,11 +113,11 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Document reference where ALL featured items are stored in an array
-        const featuredDocRef = doc(db, "featured", "current_list");
-
         let allSearchableItems = []; 
         let currentDbFeaturedItems = []; 
+
+        // Target the single master document
+        const featuredDocRef = doc(db, "featured", "master");
 
         // --- Authentication ---
         onAuthStateChanged(auth, (user) => { 
@@ -149,7 +150,6 @@
                     }
                 });
 
-                // Once catalog is built, fetch the current featured state
                 loadFeaturedItemsFromDB();
             } catch (e) { console.error("Error fetching catalog: ", e); }
         }
@@ -164,8 +164,9 @@
             try {
                 const docSnap = await getDoc(featuredDocRef);
                 
-                if (docSnap.exists() && docSnap.data().items) {
-                    currentDbFeaturedItems = docSnap.data().items;
+                if (docSnap.exists()) {
+                    // Extract the items array from the single document
+                    currentDbFeaturedItems = docSnap.data().items || [];
                 } else {
                     currentDbFeaturedItems = [];
                 }
@@ -213,7 +214,6 @@
         function showDropdownList(query = '') {
             if (currentDbFeaturedItems.length >= 10) return; 
 
-            // Prevent items currently in the grid from showing in the search dropdown
             const featuredRefIds = currentDbFeaturedItems.map(f => f.refId);
             let availableItems = allSearchableItems.filter(item => !featuredRefIds.includes(item.refId));
             
@@ -265,7 +265,7 @@
             }
         });
 
-        // --- 4. INSTANT ADD to Single DB Document ---
+        // --- 4. INSTANT ADD to Single Database Document ---
         async function addFeaturedToDB(item) {
             if (currentDbFeaturedItems.length >= 10) {
                 alert("Maximum limit of 10 featured items reached.");
@@ -284,27 +284,26 @@
                 addedAt: new Date().toISOString()
             };
 
-            // Build new array by appending the new item
-            const updatedList = [...currentDbFeaturedItems, newItem];
+            // Create updated array
+            const updatedItems = [...currentDbFeaturedItems, newItem];
 
             try {
-                // Save the whole array to the single document
-                await setDoc(featuredDocRef, { items: updatedList });
-                
+                // Save the whole array to the single "master" document
+                await setDoc(featuredDocRef, { items: updatedItems });
                 loadFeaturedItemsFromDB();
             } catch (e) { console.error("Error adding to DB: ", e); }
         }
 
-        // --- 5. INSTANT REMOVE from Single DB Document ---
-        window.removeFeaturedFromDB = async (refId) => {
+        // --- 5. INSTANT REMOVE from Single Database Document ---
+        window.removeFeaturedFromDB = async (refIdToRemove) => {
             if(confirm("Remove this item from the featured collection?")) {
-                // Filter out the specific product from the array
-                const updatedList = currentDbFeaturedItems.filter(item => item.refId !== refId);
+                
+                // Filter the item out of the array
+                const updatedItems = currentDbFeaturedItems.filter(item => item.refId !== refIdToRemove);
                 
                 try {
-                    // Update the single document with the new array
-                    await setDoc(featuredDocRef, { items: updatedList });
-                    
+                    // Save the updated array back to the master document
+                    await setDoc(featuredDocRef, { items: updatedItems });
                     loadFeaturedItemsFromDB();
                 } catch (e) { console.error("Error removing from DB: ", e); }
             }
@@ -312,3 +311,5 @@
     </script>
 </body>
 </html>
+
+```
