@@ -95,7 +95,7 @@
             </div>
             
             <div class="search-container">
-                <input type="text" id="search-input" placeholder="Click to view or search available products..." autocomplete="off">
+                <input type="text" id="search-input" placeholder="Click to view or search available products to feature..." autocomplete="off">
                 <div id="search-results" class="search-results hidden"></div>
             </div>
         </div>
@@ -106,9 +106,18 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // Import deleteField to remove specific fields from the single document
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyCTKAwzedyIHS2_5-oHszSGMaXAtemm-os", authDomain: "coinverse-6b6fb.firebaseapp.com", projectId: "coinverse-6b6fb", storageBucket: "coinverse-6b6fb.firebasestorage.app", messagingSenderId: "436953416888", appId: "1:436953416888:web:9f9c0ae57fd3b99213e04d", measurementId: "G-Y5EXMEWKXK" };
+        const firebaseConfig = { 
+            apiKey: "AIzaSyCTKAwzedyIHS2_5-oHszSGMaXAtemm-os", 
+            authDomain: "coinverse-6b6fb.firebaseapp.com", 
+            projectId: "coinverse-6b6fb", 
+            storageBucket: "coinverse-6b6fb.firebasestorage.app", 
+            messagingSenderId: "436953416888", 
+            appId: "1:436953416888:web:9f9c0ae57fd3b99213e04d", 
+            measurementId: "G-Y5EXMEWKXK" 
+        };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -122,9 +131,7 @@
         // --- Authentication ---
         onAuthStateChanged(auth, (user) => { 
             if (!user) window.location.href = 'index.html'; 
-            else {
-                fetchBaseCatalog();
-            }
+            else { fetchBaseCatalog(); }
         });
         document.getElementById('btn-logout').addEventListener('click', () => { signOut(auth).then(() => window.location.href = 'index.html'); });
 
@@ -137,6 +144,7 @@
                 querySnapshot.forEach((docSnap) => {
                     const categoryData = docSnap.data();
                     
+                    // Dive into the products array field inside the document
                     if (categoryData.products && Array.isArray(categoryData.products)) {
                         categoryData.products.forEach(product => {
                             allSearchableItems.push({
@@ -163,13 +171,16 @@
             
             try {
                 const docSnap = await getDoc(featuredDocRef);
-                
+                currentDbFeaturedItems = [];
+
                 if (docSnap.exists()) {
-                    // Extract the items array from the single document
-                    currentDbFeaturedItems = docSnap.data().items || [];
-                } else {
-                    currentDbFeaturedItems = [];
-                }
+                    // Extract all fields from the document and turn them into an array
+                    const data = docSnap.data();
+                    currentDbFeaturedItems = Object.values(data);
+                } 
+
+                // Sort by date added (optional, keeps them in order)
+                currentDbFeaturedItems.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt));
 
                 // Update UI Grid
                 grid.innerHTML = ''; 
@@ -181,7 +192,7 @@
                     searchResults.classList.add('hidden');
                 } else {
                     searchInput.disabled = false;
-                    searchInput.placeholder = "Click to view or search available products...";
+                    searchInput.placeholder = "Click to view or search available products to feature...";
                 }
 
                 if (currentDbFeaturedItems.length === 0) {
@@ -214,6 +225,7 @@
         function showDropdownList(query = '') {
             if (currentDbFeaturedItems.length >= 10) return; 
 
+            // Find refIds that are currently featured so we DON'T show them in search
             const featuredRefIds = currentDbFeaturedItems.map(f => f.refId);
             let availableItems = allSearchableItems.filter(item => !featuredRefIds.includes(item.refId));
             
@@ -223,7 +235,6 @@
                     item.subtitle.toLowerCase().includes(query)
                 );
             }
-
             renderSearchResults(availableItems);
         }
 
@@ -265,7 +276,7 @@
             }
         });
 
-        // --- 4. INSTANT ADD to Single Database Document ---
+        // --- 4. INSTANT ADD as a distinct Field in the single document ---
         async function addFeaturedToDB(item) {
             if (currentDbFeaturedItems.length >= 10) {
                 alert("Maximum limit of 10 featured items reached.");
@@ -275,7 +286,7 @@
             searchResults.classList.add('hidden');
             searchInput.value = '';
 
-            const newItem = {
+            const newItemData = {
                 refId: item.refId,
                 name: item.name,
                 image: item.image,
@@ -284,26 +295,21 @@
                 addedAt: new Date().toISOString()
             };
 
-            // Create updated array
-            const updatedItems = [...currentDbFeaturedItems, newItem];
-
             try {
-                // Save the whole array to the single "master" document
-                await setDoc(featuredDocRef, { items: updatedItems });
+                // merge: true ensures we add a new field without overwriting the whole document
+                await setDoc(featuredDocRef, { [item.refId]: newItemData }, { merge: true });
                 loadFeaturedItemsFromDB();
             } catch (e) { console.error("Error adding to DB: ", e); }
         }
 
-        // --- 5. INSTANT REMOVE from Single Database Document ---
+        // --- 5. INSTANT REMOVE using deleteField() ---
         window.removeFeaturedFromDB = async (refIdToRemove) => {
             if(confirm("Remove this item from the featured collection?")) {
-                
-                // Filter the item out of the array
-                const updatedItems = currentDbFeaturedItems.filter(item => item.refId !== refIdToRemove);
-                
                 try {
-                    // Save the updated array back to the master document
-                    await setDoc(featuredDocRef, { items: updatedItems });
+                    // This deletes specifically the field with the matching refId name
+                    await updateDoc(featuredDocRef, {
+                        [refIdToRemove]: deleteField()
+                    });
                     loadFeaturedItemsFromDB();
                 } catch (e) { console.error("Error removing from DB: ", e); }
             }
