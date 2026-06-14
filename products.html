@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - CoinVerse</title>
+    <style>
+        :root { --bg-color: #ffffff; --panel-bg: #f8f9fa; --border-color: #e9ecef; --accent: #007bff; --text-primary: #212529; --text-secondary: #6c757d; --shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+        .hero-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: flex; justify-content: center; align-items: center; }
+        .constant-circle { width: 450px; height: 450px; border-radius: 50%; background: transparent; box-shadow: 0 0 150px 50px rgba(0, 123, 255, 0.08); }
+        
+        .glass-panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem; box-shadow: var(--shadow); }
+        .glass-nav { background: rgba(255, 255, 255, 0.9); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 3rem; position: sticky; top: 0; z-index: 100; }
+        .brand { font-size: 1.5rem; font-weight: bold; color: var(--accent); }
+        .nav-links { display: flex; justify-content: flex-end; gap: 2rem; flex: 1; }
+        .nav-links a, .nav-links button { color: var(--text-primary); text-decoration: none; font-weight: 500; transition: color 0.3s; background: none; border: none; cursor: pointer; font-size: 1rem; }
+        .nav-links a:hover, .nav-links button:hover { color: var(--accent); }
+        
+        main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        button { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .primary-btn { background: #ffffff; color: var(--text-primary); border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .primary-btn:hover { background: #f1f3f5; border-color: #ced4da; }
+        .glow-btn { border-color: var(--accent); color: var(--accent); background: #ffffff; }
+        .glow-btn:hover { background: var(--accent); color: #ffffff; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25); }
+        .secondary-btn { background: transparent; color: var(--text-secondary); }
+        .secondary-btn:hover { color: var(--text-primary); }
+        
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1.5rem; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+        
+        .card { background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.08); border-color: #ced4da; }
+        .card img { width: 100%; height: 180px; object-fit: cover; border-bottom: 1px solid var(--border-color); background: #f1f3f5; }
+        .card-content { padding: 1.2rem; display: flex; flex-direction: column; flex: 1; }
+        .card-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; color: var(--text-primary); }
+        .card-details { flex: 1; }
+        .card-details p { margin-bottom: 0.4rem; font-size: 0.9rem; color: var(--text-secondary); }
+        .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+        
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ced4da; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #28a745; }
+        input:checked + .slider:before { transform: translateX(20px); }
+    </style>
+</head>
+<body>
+    <div class="hero-background"><div class="constant-circle"></div></div>
+
+    <nav class="glass-nav">
+        <div class="brand">CoinVerse Admin</div>
+        <div class="nav-links">
+            <a href="categories.html">Manage Categories</a>
+            <button id="btn-logout">Logout</button>
+        </div>
+    </nav>
+
+    <main>
+        <div class="action-bar glass-panel">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="secondary-btn" onclick="window.location.href='categories.html'">← Back</button>
+                <h2>Products: <span id="current-category-name"></span></h2>
+            </div>
+            <button class="primary-btn glow-btn" id="btn-add-product">Add Product</button>
+        </div>
+        <div id="product-grid" class="grid-container"></div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyCTKAwzedyIHS2_5-oHszSGMaXAtemm-os", authDomain: "coinverse-6b6fb.firebaseapp.com", projectId: "coinverse-6b6fb", storageBucket: "coinverse-6b6fb.firebasestorage.app", messagingSenderId: "436953416888", appId: "1:436953416888:web:9f9c0ae57fd3b99213e04d", measurementId: "G-Y5EXMEWKXK" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('categoryId');
+        const categoryName = urlParams.get('name');
+
+        if (!categoryId) window.location.href = 'categories.html'; 
+        document.getElementById('current-category-name').innerText = categoryName || '';
+
+        onAuthStateChanged(auth, (user) => { if (!user) window.location.href = 'index.html'; else loadProducts(); });
+        document.getElementById('btn-logout').addEventListener('click', () => { signOut(auth).then(() => window.location.href = 'index.html'); });
+
+        document.getElementById('btn-add-product').addEventListener('click', () => {
+            window.location.href = `product-form.html?categoryId=${categoryId}&categoryName=${encodeURIComponent(categoryName)}`;
+        });
+
+        async function loadProducts() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '<p>Loading...</p>';
+            
+            const q = query(collection(db, "products"), where("categoryId", "==", categoryId));
+            const querySnapshot = await getDocs(q);
+            
+            grid.innerHTML = '';
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.style.cursor = 'default';
+                div.innerHTML = `
+                    <img src="${data.image || 'https://via.placeholder.com/300x180?text=No+Image'}" alt="${data.name}">
+                    <div class="card-content">
+                        <div class="card-title">${data.name}</div>
+                        <div class="card-details">
+                            <p><strong>Country:</strong> ${data.country}</p>
+                            <p><strong>Year:</strong> ${data.year}</p>
+                            <p><strong>Metal:</strong> ${data.metal}</p>
+                        </div>
+                        <div class="card-actions">
+                            <label class="switch">
+                                <input type="checkbox" ${data.isActive !== false ? 'checked' : ''} onchange="window.toggleProduct('${docSnap.id}', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="primary-btn" style="padding: 0.4rem 0.8rem;" onclick="window.editProduct('${docSnap.id}')">Edit</button>
+                                <button class="secondary-btn" style="padding: 0.4rem 0.8rem;" onclick="window.deleteProduct('${docSnap.id}')">Remove</button>
+                            </div>
+                        </div>
+                    </div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        window.toggleProduct = async (id, state) => { await updateDoc(doc(db, "products", id), { isActive: state }); }
+        
+        window.editProduct = (id) => {
+            window.location.href = `product-form.html?categoryId=${categoryId}&categoryName=${encodeURIComponent(categoryName)}&productId=${id}`;
+        }
+
+        window.deleteProduct = async (id) => {
+            if(confirm("Delete this product?")) {
+                await deleteDoc(doc(db, "products", id));
+                const catRef = doc(db, "categories", categoryId);
+                const catSnap = await getDoc(catRef);
+                let catProducts = catSnap.data().products || [];
+                catProducts = catProducts.filter(p => p.id !== id);
+                await updateDoc(catRef, { products: catProducts });
+                loadProducts();
+            }
+        }
+    </script>
+</body>
+</html>
